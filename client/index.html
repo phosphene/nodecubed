@@ -1,0 +1,143 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	
+	<head>
+		<title>node_cubism_boilerplate</title>
+		
+		<!-- stylesheet -->
+		<link rel="stylesheet" type="text/css" href="style.css" />		
+		
+		<!-- base2 and date for syntactic sugar -->
+		<script src="js/base2-p-1.0.1.js"></script>
+
+		<!-- socket.io for duplex communication -->
+		<script src="js/socket.io.js"></script>
+
+		<!-- XPRESSmp interface -->
+		<script src="js/ucirrus.xmp.js"></script>
+
+		<!--  jQuery -->
+		<script src="js/jquery.min.js"></script>
+
+		<!-- D3 for graphs and stacked bar charts -->
+		<script src="js/d3.v2.js"></script>
+		
+		<!--  Cubism for horizon graphs -->
+		<script src="js/cubism.v1.js"></script>
+
+		<script>
+			
+			// parse URL parameters into a map
+			$.urlParam = function (name) {
+			    var results = new RegExp('[\\?&]' + name + '=([^&#]*)').exec(window.location.href);
+			    if (!results) return 0; 
+			    else return results[1] || 0;
+			}
+			
+			// get 'id' parameter
+			var id = $.urlParam('id');
+			
+			// last value
+			var lastValue;		
+			var that = this;
+		
+			// implement callbacks
+			var xmpClient = XmpClient.extend({
+				connected : function () {
+				},				
+				
+				value : function (msg) {
+					//console.log(msg);
+					that.lastValue = msg;
+				}	
+			});				
+			
+			// Xmp client
+			var client = new xmpClient();
+			
+			// Cubism context
+			var context;
+			
+			$(document).ready(function() {
+				// Connect socket
+				client.connect();
+				
+				// Cubism context
+				initializeGraphs();							
+			});
+			
+			function initializeGraphs () {
+				context = cubism.context()
+                                    .clientDelay(1e3)
+				    .step(50)
+				    .size(600);
+	
+				// Insert horizon graphs into DOM			
+				d3.select("body").selectAll(".axis")
+				    .data(["top", "bottom"])
+				  .enter().append("div")
+				    .attr("class", function(d) { return d + " axis"; })
+				    .each(function(d) { d3.select(this).call(context.axis().ticks(12).orient(d)); });
+				
+				d3.select("body").append("div")
+				    .attr("class", "rule")
+				    .call(context.rule());
+				
+				d3.select("body").selectAll(".horizon")
+				    .data(d3.range(1, 10).map(test))
+				  .enter().insert("div", ".bottom")
+				    .attr("class", "horizon")
+				    .call(context.horizon().extent([-10, 10]));			
+				    
+				context.on("focus", function(i) {
+				  d3.selectAll(".value").style("right", i == null ? null : context.size() - i + "px");
+				});	
+			}
+			
+			function test (x) {
+				var last, 
+			      values = [],
+				  value;
+				return context.metric(function(start, stop, step, callback) {
+				
+				  // convert start & stop to milliseconds
+				  start = +start;
+				  stop = +stop;
+				
+				  if (isNaN(last)) last = stop;				  
+
+				  while (last < stop) {				  
+				    last += step;
+				    //value = 5;
+				    var j = parseInt(x) - 1;
+				    value = (this.lastValue == undefined) ? 0 : this.lastValue[j];
+    			    console.log(value);
+				    values.push(value);
+				  }
+				
+				   callback(null, values = values.slice((start - stop) / step));
+				},x);
+			}
+			
+			function random (x) {
+			  var value = 0,
+			      values = [],
+			      i = 0,
+			      last;
+			  return context.metric(function(start, stop, step, callback) {
+			    start = +start, stop = +stop;
+			    if (isNaN(last)) last = stop;
+			    while (last < stop) {
+			      last += step;
+			      value = 1.5;
+			      console.log(value);
+			      values.push(value);
+			    }
+			    callback(null, values = values.slice((start - stop) / step));
+			  }, x);
+			}
+		</script>
+	</head>
+
+</html>
+		
