@@ -57,6 +57,7 @@ app.get('/rest/data', function(req, res) {
 });
 
 //io.set('heartbeat timeout',2);
+//last argument to sockets.on controls speed of emission
 io.set('log level',2);
 
 io.sockets.on('connection', function (socket) {
@@ -67,7 +68,7 @@ io.sockets.on('connection', function (socket) {
 		console.log(v);
 		socket.volatile.emit('value',v);
 
-	}, 3000);
+	}, 30);
 
 	socket.on('disconnect', function() {
 		console.log('close, xmpIntervalId = ' + this.xmpIntervalId);
